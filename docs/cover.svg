@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="974" height="276" viewBox="0 0 974 276" role="img" aria-labelledby="title">
+<title id="title">MeterTrail — project overview</title>
+<rect width="974" height="276" rx="18" fill="#18192d"/>
+<path d="M0 149H974M738 0v149M784 0v149M830 0v149M876 0v149M922 0v149" stroke="#fabd90" stroke-opacity=".17"/>
+<g font-family="system-ui, sans-serif">
+<text x="46" y="53" fill="#fabd90" font-size="14" letter-spacing="2">USAGE METERING  /  RUST ARCHITECTURE</text>
+<text x="43" y="118" fill="#fff" font-size="62" font-weight="720">MeterTrail</text>
+<rect x="46" y="177" width="270" height="55" rx="10" fill="#ffffff" fill-opacity=".08" stroke="#fabd90" stroke-opacity=".35"/><text x="64" y="211" fill="#fabd90" font-size="14">01</text><text x="102" y="211" fill="#fff" font-size="20">Accept event</text><rect x="352" y="177" width="270" height="55" rx="10" fill="#ffffff" fill-opacity=".08" stroke="#fabd90" stroke-opacity=".35"/><text x="370" y="211" fill="#fabd90" font-size="14">02</text><text x="408" y="211" fill="#fff" font-size="20">Replay safely</text><rect x="658" y="177" width="270" height="55" rx="10" fill="#ffffff" fill-opacity=".08" stroke="#fabd90" stroke-opacity=".35"/><text x="676" y="211" fill="#fabd90" font-size="14">03</text><text x="714" y="211" fill="#fff" font-size="20">Count once</text>
+</g>
+</svg>

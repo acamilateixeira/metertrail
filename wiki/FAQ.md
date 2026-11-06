@@ -13,7 +13,7 @@ One id cannot mean two different usages. Keeping the first record and refusing t
 Yes. Ids are unique within a project, and the project comes from the API key.
 
 **Is it production ready?**
-Not yet. Events live in memory and the keys are demo values. The next milestones add durable storage, recovery after failures, and a hosted deployment. See [Roadmap](Roadmap).
+Not yet. Recovery after a worker crash is implemented and tested, but everything lives in memory and the keys are demo values. The next milestones add durable storage and a hosted deployment. See [Roadmap](Roadmap).
 
 **Why Rust?**
 Typed request handling, explicit validation, and predictable performance for a high-volume ingestion path, with a separate batch job planned in the same language.

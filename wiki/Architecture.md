@@ -1,26 +1,29 @@
 # Architecture
 
-## Today: local ingestion contract
+## Today: ingestion and projection in one process
 
 ```mermaid
 flowchart LR
     Client[API client] -->|X-API-Key + event| API[Axum router]
-    API --> Auth[Key → project]
-    Auth --> Ledger[(In-memory ledger<br/>project → event_id → operation)]
-    Ledger --> Usage[GET /v1/usage<br/>distinct ids per project]
+    API --> Ledger[(Ledger<br/>seq · project · event_id)]
+    Ledger --> Usage[GET /v1/usage]
+    Ledger -->|read after checkpoint| Job[Projector]
+    Job -->|1. insert batch| Analytics[(Analytics rows)]
+    Job -->|2. advance| Checkpoint[(Checkpoint)]
+    Analytics --> Projected[GET /v1/usage/projected<br/>distinct ids by period]
 ```
 
-Everything runs in one process (`src/main.rs`):
+| Part | Where | What it does |
+| --- | --- | --- |
+| Router | `src/main.rs` | HTTP endpoints, key lookup, validation, admin endpoints for the projection |
+| Ledger | `src/ledger.rs` | `EventLedger` trait. Checks the id and inserts in one atomic step, and gives each accepted event a global sequence number. The in-memory implementation keeps one lock. |
+| Projector | `src/projection.rs` | Reads events after the checkpoint, inserts them into analytics, then advances the checkpoint. One batch at a time. Supports an injected crash between the two writes. |
+| Analytics | `src/projection.rs` | `Analytics` trait. Accepts duplicate rows and answers with distinct event ids per project and period. |
+| Checkpoint | `src/projection.rs` | `Checkpoint` trait. Only moves forward, except on an explicit replay. |
 
-| Part | What it does |
-| --- | --- |
-| Router | `POST /v1/events`, `GET /v1/usage`, `GET /health` |
-| Key lookup | Maps `demo-alpha` and `demo-beta` to the `alpha` and `beta` projects |
-| Validation | Rejects unknown fields, blank values, and values over 100 characters |
-| Ledger | A map of project → (event id → operation) behind one mutex. Check and insert happen under the same lock. |
-| Usage | Counts the ids stored for the project |
+`src/ledger.rs` and `src/projection.rs` use only the standard library. The recovery rules are tested without HTTP and without external services, and the Firestore and ClickHouse implementations will plug into the same traits.
 
-This is enough to prove the contract and its concurrency behavior. It is not durable: a restart loses every event.
+Nothing is durable yet: a restart loses the ledger, the analytics rows, and the checkpoint.
 
 ## Planned: cloud pipeline
 
@@ -45,7 +48,7 @@ flowchart LR
 
 ### Freshness
 
-The API confirms durable receipt; analytics catch up asynchronously. The hosted demo will show the age of the oldest pending event and query latency, so an operator can tell whether the total on screen is current.
+The API confirms receipt; analytics catch up asynchronously. `GET /v1/usage/projected` already returns the ledger head, the checkpoint, the number of pending events, and the age of the oldest one, so a client can tell whether the total is current. The hosted demo will chart the same numbers along with query latency.
 
 ### Why the job can replay safely
 

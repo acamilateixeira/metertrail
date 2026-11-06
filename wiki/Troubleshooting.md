@@ -9,4 +9,6 @@
 | `422` with a message about an unknown field | The body has a field other than `event_id` and `operation` | Remove the extra field |
 | `409 event_payload_conflict` | The id was already used with a different `operation` | Generate a new id for each distinct usage |
 | Usage went back to 0 | The API restarted; this version keeps events in memory | Expected. Durable storage is the next milestone |
+| `GET /v1/usage/projected` shows 0 while `GET /v1/usage` shows events | The projection has not run yet | `POST /admin/projection/run` with `X-Admin-Key: demo-admin`, or start with `METERTRAIL_PROJECT_EVERY_MS=1000` |
+| `physical_rows` is higher than `count` | A batch was written again after a crash or a replay | Expected. Usage counts distinct event ids |
 | `permission denied: ./scripts/demo.sh` | The file lost its executable bit | `chmod +x scripts/demo.sh` or run `bash scripts/demo.sh` |

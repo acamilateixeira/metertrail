@@ -1,7 +1,7 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-11-06T12:00:00.000Z",
+  "__export_date": "2026-11-06T21:00:00.000Z",
   "__export_source": "metertrail",
   "resources": [
     {
@@ -256,6 +256,123 @@
         "text": "{\n  \"event_id\": \" \",\n  \"operation\": \"GET /orders\"\n}"
       },
       "authentication": {}
+    },
+    {
+      "_id": "req_10",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "9. Projected usage (alpha)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/v1/usage/projected",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        }
+      ],
+      "description": "Distinct events in analytics, physical rows and freshness. Add ?from=&to= (Unix seconds, half-open) for a period. Before any run, count is 0 and pending_events shows the backlog.",
+      "metaSortKey": 10,
+      "authentication": {},
+      "body": {}
+    },
+    {
+      "_id": "req_11",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "10. Run projection with an injected crash",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/projection/run",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Key",
+          "value": "demo-admin"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "Writes the batch to analytics and stops before the checkpoint: 500 injected_crash, projected_through unchanged.",
+      "metaSortKey": 11,
+      "authentication": {},
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"fail\": \"after_analytics_write\"\n}"
+      }
+    },
+    {
+      "_id": "req_12",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "11. Run projection again",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/projection/run",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Key",
+          "value": "demo-admin"
+        }
+      ],
+      "description": "Restart: the same batch is written again and the checkpoint advances. 200 with projected_through equal to the ledger head.",
+      "metaSortKey": 12,
+      "authentication": {},
+      "body": {}
+    },
+    {
+      "_id": "req_13",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "12. Projected usage after recovery (alpha)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/v1/usage/projected",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        }
+      ],
+      "description": "count equals GET /v1/usage. physical_rows is higher because the crashed batch was written twice.",
+      "metaSortKey": 13,
+      "authentication": {},
+      "body": {}
+    },
+    {
+      "_id": "req_14",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "13. Replay from the start",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/projection/replay",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Key",
+          "value": "demo-admin"
+        }
+      ],
+      "description": "Resets the checkpoint and projects the whole ledger again. The projected count does not change.",
+      "metaSortKey": 14,
+      "authentication": {},
+      "body": {}
     }
   ]
 }

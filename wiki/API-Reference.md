@@ -60,8 +60,71 @@ curl http://127.0.0.1:4100/v1/usage -H 'X-API-Key: demo-alpha'
 
 | Status | Body |
 | --- | --- |
-| `200 OK` | `{"count":<number>,"project":"<name>"}` |
+| `200 OK` | `{"count":<number>,"project":"<name>","source":"ledger"}` |
 | `401 Unauthorized` | `{"error":"invalid_key"}` |
+
+This count comes from the ledger, so it is always current. It has no time window.
+
+## `GET /v1/usage/projected`
+
+Usage from analytics, optionally for a period, with how far analytics is behind the ledger.
+
+| Query parameter | Meaning |
+| --- | --- |
+| `from` | Optional. Unix seconds, inclusive. Compared with the time the API accepted the event. |
+| `to` | Optional. Unix seconds, exclusive. Must be greater than `from`. |
+
+```bash
+curl 'http://127.0.0.1:4100/v1/usage/projected?from=1793990000' -H 'X-API-Key: demo-alpha'
+```
+
+```json
+{
+  "project": "alpha",
+  "count": 6,
+  "physical_rows": 10,
+  "source": "analytics",
+  "window": {"from": 1793990000, "to": null},
+  "freshness": {
+    "ledger_head": 7,
+    "projected_through": 7,
+    "pending_events": 0,
+    "oldest_pending_age_secs": null
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `count` | Distinct event ids for the project in the window |
+| `physical_rows` | Rows stored for the project, duplicates included. Higher than `count` after a crash or a replay. |
+| `freshness.ledger_head` | Highest sequence number in the ledger, all projects |
+| `freshness.projected_through` | Checkpoint: the last sequence number the projection finished |
+| `freshness.pending_events` | Events accepted but not yet projected |
+| `freshness.oldest_pending_age_secs` | Age of the oldest pending event, or `null` when nothing is pending |
+
+| Status | Body |
+| --- | --- |
+| `200 OK` | As above |
+| `400 Bad Request` | `{"error":"invalid_window"}` when `from` is not lower than `to`; plain text for a non-numeric or unknown parameter |
+| `401 Unauthorized` | `{"error":"invalid_key"}` |
+
+## `POST /admin/projection/run`
+
+Runs the projection until it catches up with the ledger. Requires `X-Admin-Key: demo-admin`.
+
+Optional body: `{"fail":"after_analytics_write"}` stops the next batch once, after it is written to analytics and before the checkpoint moves.
+
+| Status | Body | When |
+| --- | --- | --- |
+| `200 OK` | `{"batches":<n>,"projected_through":<seq>}` | Caught up |
+| `500 Internal Server Error` | `{"error":"injected_crash","written_through":<seq>,"projected_through":<seq>}` | The injected crash: analytics has rows up to `written_through`, the checkpoint stayed at `projected_through` |
+| `400 Bad Request` | `{"error":"unknown_fail_point"}` | Any other `fail` value |
+| `401 Unauthorized` | `{"error":"invalid_admin_key"}` | Missing or wrong admin key |
+
+## `POST /admin/projection/replay`
+
+Resets the checkpoint to zero and projects the whole ledger again. Same responses as `run`, without a body. The projected `count` does not change; `physical_rows` grows.
 
 ## `GET /health`
 

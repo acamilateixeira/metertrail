@@ -51,4 +51,6 @@ Import `insomnia/metertrail.json` into Insomnia or `docs/postman.collection.json
 
 Events live in memory: restarting the API resets both counts.
 
+To see the recovery, run `./scripts/demo.sh`. Step 4 injects a crash in the projection, runs it again, replays everything, and checks that the projected total still equals the ledger.
+
 Next: [API Reference](API-Reference) · [Concepts](Concepts)

@@ -30,4 +30,4 @@ Retries often arrive at the same time, for example when a client fires a request
 
 ## Counting
 
-Usage is the number of distinct event ids in the project. In the cloud plan, analytics rows may be written twice after a worker crash; the query will still count distinct ids, so a duplicate row cannot inflate the total. See [Architecture](Architecture).
+Usage is the number of distinct event ids in the project. Analytics rows may be written twice after a worker crash; the query counts distinct ids, so a duplicate row cannot inflate the total. The tests and step 4 of the demo show this with an injected crash. See [Architecture](Architecture).

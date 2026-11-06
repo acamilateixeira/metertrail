@@ -100,8 +100,8 @@ fn app() -> Router {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let address = "127.0.0.1:4100";
-    let listener = tokio::net::TcpListener::bind(address).await?;
+    let address = std::env::var("METERTRAIL_ADDR").unwrap_or_else(|_| "127.0.0.1:4100".to_owned());
+    let listener = tokio::net::TcpListener::bind(&address).await?;
     println!("MeterTrail local demo at http://{address}");
     axum::serve(listener, app()).await
 }
@@ -164,5 +164,55 @@ mod tests {
         );
         assert_eq!(call(app.clone(), "demo-beta", None).await.1["count"], 1);
         assert_eq!(call(app, "unknown", None).await.0, StatusCode::UNAUTHORIZED);
+    }
+
+    async fn post_raw(key: Option<&str>, body: &str) -> StatusCode {
+        let mut request = Request::post("/v1/events").header("content-type", "application/json");
+        if let Some(key) = key {
+            request = request.header("x-api-key", key);
+        }
+        app()
+            .oneshot(request.body(Body::from(body.to_owned())).unwrap())
+            .await
+            .unwrap()
+            .status()
+    }
+
+    #[tokio::test]
+    async fn rejects_requests_that_break_the_contract() {
+        let valid = r#"{"event_id":"e-1","operation":"GET /orders"}"#;
+        assert_eq!(post_raw(None, valid).await, StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            post_raw(Some("unknown"), valid).await,
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            post_raw(
+                Some("demo-alpha"),
+                r#"{"event_id":"  ","operation":"GET /orders"}"#
+            )
+            .await,
+            StatusCode::BAD_REQUEST
+        );
+        let long_id = format!(
+            r#"{{"event_id":"{}","operation":"GET /orders"}}"#,
+            "x".repeat(101)
+        );
+        assert_eq!(
+            post_raw(Some("demo-alpha"), &long_id).await,
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            post_raw(
+                Some("demo-alpha"),
+                r#"{"event_id":"e-1","operation":"GET /orders","units":5}"#
+            )
+            .await,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+        assert_eq!(
+            post_raw(Some("demo-alpha"), valid).await,
+            StatusCode::CREATED
+        );
     }
 }

@@ -34,7 +34,7 @@ A API confirma que o evento foi persistido. Os dados analíticos são atualizado
 
 [Transações do Firestore](https://docs.cloud.google.com/firestore/native/docs/manage-data/transactions) · [Cliente Rust do ClickHouse](https://clickhouse.com/docs/integrations/language-clients/rust/index) · [Cloud Run](https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run) · [OpenTelemetry para Rust](https://opentelemetry.io/docs/languages/rust/)
 
-## A demo que vamos construir
+## A demo em nuvem que vamos construir
 
 1. Enviar o mesmo evento em paralelo e confirmar que ele conta uma única vez.
 2. Derrubar o processador após a escrita no ClickHouse e antes da confirmação no Firestore. Retomar e comprovar que o total fica correto após o reprocessamento.
@@ -44,19 +44,71 @@ A demo usa dados sintéticos. O ensaio vai registrar ambiente, carga, p95 de ing
 
 ## Entrega
 
-| Marco | Evidência |
-| --- | --- |
-| **Contrato de ingestão** | API em Rust, ambiente reproduzível e testes de reenvio, conflito e isolamento. |
-| **Falha e recuperação** | Projeção em lote, falha controlada, totais consistentes e teste de reprocessamento. |
-| **Demo hospedada** | Infraestrutura reproduzível, verificação após deploy, traces e roteiro público com tráfego sintético. |
+| Marco | Situação | Evidência |
+| --- | --- | --- |
+| **Contrato de ingestão** | **Pronto** | API em Rust, testes de reenvio concorrente, conflito de conteúdo, entrada inválida e isolamento, e uma demo em script que roda no CI. |
+| **Falha e recuperação** | Próximo | Projeção em lote, falha controlada, totais consistentes e teste de reprocessamento. |
+| **Demo hospedada** | Planejado | Infraestrutura reproduzível, verificação após deploy, traces e roteiro público com tráfego sintético. |
 
-## Rodar a API Rust local
+## Início rápido
 
-Use Rust estável e Cargo. A API local guarda eventos em memória e escuta em `127.0.0.1:4100`.
+Use Rust estável e Cargo. A API local guarda os eventos em memória, então cada reinício começa do zero.
 
 ```bash
-cargo test --locked
-cargo run --locked
+git clone https://github.com/acamilateixeira/metertrail.git
+cd metertrail
+cargo test --locked   # testes do contrato, incluindo 16 reenvios simultâneos
+cargo run --locked    # http://127.0.0.1:4100 (troque com METERTRAIL_ADDR)
 ```
 
-Importe a [coleção Postman](docs/postman.collection.json) no Postman ou Insomnia. Ela confere ingestão, reenvio, conflito de conteúdo, consulta de uso e chave inválida. O teste Rust dispara 16 requisições concorrentes e verifica que apenas uma cria um evento, o total fica em um após os reenvios e outro projeto tem sua própria contagem. Firestore, ClickHouse, recuperação após falha do processador e deploy são os próximos marcos.
+Duas chaves de demonstração correspondem a dois projetos: `demo-alpha` e `demo-beta`. Envie um evento e depois envie de novo:
+
+```bash
+curl -i http://127.0.0.1:4100/v1/events \
+  -H 'X-API-Key: demo-alpha' -H 'Content-Type: application/json' \
+  -d '{"event_id":"evt-1","operation":"GET /orders"}'
+# 201 {"event_id":"evt-1","result":"accepted"} e, no reenvio, 200 {"event_id":"evt-1","result":"duplicate"}
+
+curl http://127.0.0.1:4100/v1/usage -H 'X-API-Key: demo-alpha'
+# {"count":1,"project":"alpha"}
+```
+
+### Contrato da API
+
+| Requisição | Resultado |
+| --- | --- |
+| `event_id` novo no projeto | `201` `accepted`, uso + 1 |
+| Mesmo `event_id` e mesma `operation` | `200` `duplicate`, uso igual |
+| Mesmo `event_id`, `operation` diferente | `409` `event_payload_conflict`, uso igual |
+| `X-API-Key` ausente ou desconhecida | `401` `invalid_key` |
+| Campo em branco ou com mais de 100 caracteres | `400` `invalid_event` |
+| Campos JSON desconhecidos | `422` |
+
+## Demo
+
+Com a API rodando, `./scripts/demo.sh` confere as três garantias contra o servidor real. O CI roda o mesmo script a cada mudança (`START_SERVER=1 ./scripts/demo.sh`).
+
+```text
+1. The same event sent 8 times at once counts once
+  ✓ one request created the event
+  ✓ seven requests were reported as duplicates
+  ✓ usage for alpha went up by exactly 1
+2. Reusing the id with different content is a conflict
+  ✓ HTTP 409
+  ✓ usage for alpha is unchanged
+3. Projects are isolated
+  ✓ the same id is new for beta (HTTP 201)
+  ✓ usage for beta went up by exactly 1
+  ✓ usage for alpha is unchanged
+All 8 checks passed.
+```
+
+Para explorar à mão, importe [`insomnia/metertrail.json`](insomnia/metertrail.json) no Insomnia ou [`docs/postman.collection.json`](docs/postman.collection.json) no Postman. As duas seguem os mesmos passos.
+
+## Escopo desta versão
+
+Os eventos ficam em memória e as chaves são valores fixos de demonstração. Isso basta para provar o contrato de ingestão, não para produção. Firestore, ClickHouse, reprocessamento após falha do processador e deploy em nuvem são os próximos marcos.
+
+## Licença
+
+[MIT](LICENSE)

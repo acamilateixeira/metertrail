@@ -1,0 +1,261 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-11-06T12:00:00.000Z",
+  "__export_source": "metertrail",
+  "resources": [
+    {
+      "_id": "wrk_metertrail",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "MeterTrail API",
+      "description": "Local demo of retry-safe usage metering. Start the API with `cargo run --locked` (http://127.0.0.1:4100). Keys: demo-alpha and demo-beta.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_metertrail",
+      "name": "Base",
+      "data": {
+        "base_url": "http://127.0.0.1:4100",
+        "event_id": "sample-event"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "event_id"
+        ]
+      }
+    },
+    {
+      "_id": "req_1",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "Health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "description": "Expect 200 and mode local-memory.",
+      "metaSortKey": 1,
+      "body": {},
+      "authentication": {}
+    },
+    {
+      "_id": "req_2",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "1. Record an event (alpha)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/v1/events",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "First call: 201 accepted.",
+      "metaSortKey": 2,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": \"{{ _.event_id }}\",\n  \"operation\": \"GET /orders\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_3",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "2. Retry the same event (alpha)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/v1/events",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "Same id and content: 200 duplicate. Usage stays at 1.",
+      "metaSortKey": 3,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": \"{{ _.event_id }}\",\n  \"operation\": \"GET /orders\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_4",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "3. Reuse the id with other content (alpha)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/v1/events",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "Same id, different content: 409 event_payload_conflict.",
+      "metaSortKey": 4,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": \"{{ _.event_id }}\",\n  \"operation\": \"POST /orders\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_5",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "4. Read usage (alpha)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/v1/usage",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        }
+      ],
+      "description": "count = 1 after the retry.",
+      "metaSortKey": 5,
+      "body": {},
+      "authentication": {}
+    },
+    {
+      "_id": "req_6",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "5. Same id in another project (beta)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/v1/events",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-beta"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "Projects are isolated: 201 accepted for beta.",
+      "metaSortKey": 6,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": \"{{ _.event_id }}\",\n  \"operation\": \"GET /orders\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_7",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "6. Read usage (beta)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/v1/usage",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-beta"
+        }
+      ],
+      "description": "count = 1, independent of alpha.",
+      "metaSortKey": 7,
+      "body": {},
+      "authentication": {}
+    },
+    {
+      "_id": "req_8",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "7. Reject an unknown key",
+      "method": "GET",
+      "url": "{{ _.base_url }}/v1/usage",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "unknown"
+        }
+      ],
+      "description": "401 invalid_key.",
+      "metaSortKey": 8,
+      "body": {},
+      "authentication": {}
+    },
+    {
+      "_id": "req_9",
+      "_type": "request",
+      "parentId": "wrk_metertrail",
+      "name": "8. Reject an invalid event",
+      "method": "POST",
+      "url": "{{ _.base_url }}/v1/events",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "X-API-Key",
+          "value": "demo-alpha"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "description": "Blank event_id: 400 invalid_event.",
+      "metaSortKey": 9,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"event_id\": \" \",\n  \"operation\": \"GET /orders\"\n}"
+      },
+      "authentication": {}
+    }
+  ]
+}

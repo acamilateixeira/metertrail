@@ -1,0 +1,207 @@
+{
+  "info": {
+    "name": "MeterTrail — local ingestion contract",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:4100"
+    },
+    {
+      "key": "eventId",
+      "value": "sample-event"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "header": []
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Record one event",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/events",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "demo-alpha"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\": \"{{eventId}}\", \"operation\": \"GET /orders\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('eventId', pm.variables.replaceIn('{{$guid}}'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Retry without counting twice",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/events",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "demo-alpha"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\": \"{{eventId}}\", \"operation\": \"GET /orders\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Duplicate detected', () => { pm.expect(pm.response.json().result).to.eql('duplicate'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject mismatched retry",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/events",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "demo-alpha"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\": \"{{eventId}}\", \"operation\": \"POST /orders\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Read project usage",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/usage",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "demo-alpha"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Usage recorded', () => { pm.expect(pm.response.json().count).to.be.greaterThan(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject an unknown key",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/usage",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "unknown"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,9 @@
 
 # MeterTrail
 
-[English](README.md) · **Português** · **Status · arquitetura e plano de implementação**
+[English](README.md) · **Português** · **Status · API Rust executável e arquitetura de nuvem proposta**
+
+[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml)
 
 **Cada chamada de API conta uma vez, mesmo com reenvios e falhas de processamento.**
 
@@ -48,4 +50,13 @@ A demo usa dados sintéticos. O ensaio vai registrar ambiente, carga, p95 de ing
 | **Falha e recuperação** | Projeção em lote, falha controlada, totais consistentes e teste de reprocessamento. |
 | **Demo hospedada** | Infraestrutura reproduzível, verificação após deploy, traces e roteiro público com tráfego sintético. |
 
-Hoje o repositório contém a arquitetura e os critérios de aceitação. Os comandos, resultados dos testes e links de deploy entram nos marcos funcionais.
+## Rodar a API Rust local
+
+Use Rust estável e Cargo. A API local guarda eventos em memória e escuta em `127.0.0.1:4100`.
+
+```bash
+cargo test --locked
+cargo run --locked
+```
+
+Importe a [coleção Postman](docs/postman.collection.json) no Postman ou Insomnia. Ela confere ingestão, reenvio, conflito de conteúdo, consulta de uso e chave inválida. O teste Rust dispara 16 requisições concorrentes e verifica que apenas uma cria um evento, o total fica em um após os reenvios e outro projeto tem sua própria contagem. Firestore, ClickHouse, recuperação após falha do processador e deploy são os próximos marcos.

@@ -2,7 +2,9 @@
 
 # MeterTrail
 
-**English** · [Português](README.pt-BR.md) · **Status · architecture and implementation plan**
+**English** · [Português](README.pt-BR.md) · **Status · runnable Rust API and cloud architecture plan**
+
+[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml)
 
 **Count API usage once, even when clients retry and workers recover.**
 
@@ -48,4 +50,13 @@ The demo uses synthetic data. The benchmark will document the environment, load,
 | **Failure and recovery** | Batch projection, an injected failure, consistent totals, and a replay test. |
 | **Hosted demo** | Deployable infrastructure, a smoke test, traces, and a public walkthrough with synthetic traffic. |
 
-This repository contains the architecture and acceptance criteria. Setup commands, test results, and deployment links will be added with the working milestones.
+## Run the Rust API locally
+
+Use stable Rust and Cargo. The local API keeps events in memory and binds to `127.0.0.1:4100`.
+
+```bash
+cargo test --locked
+cargo run --locked
+```
+
+Import the [Postman collection](docs/postman.collection.json) into Postman or Insomnia. It checks ingestion, retry, payload conflicts, usage, and invalid keys. The Rust test fires 16 concurrent requests and verifies that one creates an event, repeated requests keep the total at one, and another project has its own count. Firestore, ClickHouse, replay after a worker failure, and cloud deployment remain the next milestones.

@@ -2,6 +2,12 @@
 name = "metertrail"
 version = "0.1.0"
 edition = "2024"
+description = "Retry-safe API usage metering: each event counts once per project."
+license = "MIT"
+repository = "https://github.com/acamilateixeira/metertrail"
+readme = "README.md"
+keywords = ["metering", "idempotency", "axum", "usage", "api"]
+categories = ["web-programming::http-server"]
 
 [dependencies]
 axum = "0.8"

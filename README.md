@@ -34,7 +34,7 @@ The API acknowledges durable receipt. Analytics catch up asynchronously. The dem
 
 [Firestore transactions](https://docs.cloud.google.com/firestore/native/docs/manage-data/transactions) · [ClickHouse Rust client](https://clickhouse.com/docs/integrations/language-clients/rust/index) · [Cloud Run](https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run) · [OpenTelemetry for Rust](https://opentelemetry.io/docs/languages/rust/)
 
-## The demo to build
+## Cloud demo to build
 
 1. Send the same event concurrently and confirm it contributes one unit of usage.
 2. Stop the projector after the ClickHouse write and before the Firestore acknowledgement. Restart it and verify the usage total holds after replay.
@@ -44,19 +44,71 @@ The demo uses synthetic data. The benchmark will document the environment, load,
 
 ## Delivery
 
-| Milestone | Evidence |
-| --- | --- |
-| **Ingestion contract** | Rust API, repeatable setup, tests for retries, conflicting payloads, and project boundaries. |
-| **Failure and recovery** | Batch projection, an injected failure, consistent totals, and a replay test. |
-| **Hosted demo** | Deployable infrastructure, a smoke test, traces, and a public walkthrough with synthetic traffic. |
+| Milestone | Status | Evidence |
+| --- | --- | --- |
+| **Ingestion contract** | **Done** | Rust API, tests for concurrent retries, conflicting payloads, invalid input, and project boundaries, plus a scripted demo that runs in CI. |
+| **Failure and recovery** | Next | Batch projection, an injected failure, consistent totals, and a replay test. |
+| **Hosted demo** | Planned | Deployable infrastructure, a smoke test, traces, and a public walkthrough with synthetic traffic. |
 
-## Run the Rust API locally
+## Quickstart
 
-Use stable Rust and Cargo. The local API keeps events in memory and binds to `127.0.0.1:4100`.
+You need stable Rust and Cargo. The local API keeps events in memory, so every restart starts from zero.
 
 ```bash
-cargo test --locked
-cargo run --locked
+git clone https://github.com/acamilateixeira/metertrail.git
+cd metertrail
+cargo test --locked   # contract tests, including 16 concurrent retries
+cargo run --locked    # http://127.0.0.1:4100 (override with METERTRAIL_ADDR)
 ```
 
-Import the [Postman collection](docs/postman.collection.json) into Postman or Insomnia. It checks ingestion, retry, payload conflicts, usage, and invalid keys. The Rust test fires 16 concurrent requests and verifies that one creates an event, repeated requests keep the total at one, and another project has its own count. Firestore, ClickHouse, replay after a worker failure, and cloud deployment remain the next milestones.
+Two demo keys map to two projects: `demo-alpha` and `demo-beta`. Send an event, then send it again:
+
+```bash
+curl -i http://127.0.0.1:4100/v1/events \
+  -H 'X-API-Key: demo-alpha' -H 'Content-Type: application/json' \
+  -d '{"event_id":"evt-1","operation":"GET /orders"}'
+# 201 {"event_id":"evt-1","result":"accepted"}, then 200 {"event_id":"evt-1","result":"duplicate"} on retry
+
+curl http://127.0.0.1:4100/v1/usage -H 'X-API-Key: demo-alpha'
+# {"count":1,"project":"alpha"}
+```
+
+### API contract
+
+| Request | Result |
+| --- | --- |
+| New `event_id` for the project | `201` `accepted`, usage + 1 |
+| Same `event_id` and same `operation` | `200` `duplicate`, usage unchanged |
+| Same `event_id`, different `operation` | `409` `event_payload_conflict`, usage unchanged |
+| Missing or unknown `X-API-Key` | `401` `invalid_key` |
+| Blank or longer than 100 characters | `400` `invalid_event` |
+| Unknown JSON fields | `422` |
+
+## Demo
+
+With the API running, `./scripts/demo.sh` checks the three guarantees against the real server. CI runs the same script on every change (`START_SERVER=1 ./scripts/demo.sh`).
+
+```text
+1. The same event sent 8 times at once counts once
+  ✓ one request created the event
+  ✓ seven requests were reported as duplicates
+  ✓ usage for alpha went up by exactly 1
+2. Reusing the id with different content is a conflict
+  ✓ HTTP 409
+  ✓ usage for alpha is unchanged
+3. Projects are isolated
+  ✓ the same id is new for beta (HTTP 201)
+  ✓ usage for beta went up by exactly 1
+  ✓ usage for alpha is unchanged
+All 8 checks passed.
+```
+
+To explore by hand, import [`insomnia/metertrail.json`](insomnia/metertrail.json) into Insomnia or [`docs/postman.collection.json`](docs/postman.collection.json) into Postman. Both walk through the same steps.
+
+## Scope of this version
+
+Events live in memory and API keys are fixed demo values. That is enough to prove the ingestion contract, not to run in production. Firestore, ClickHouse, replay after a worker failure, and the cloud deployment are the next milestones.
+
+## License
+
+[MIT](LICENSE)

@@ -18,3 +18,5 @@ jobs:
       - run: cargo fmt --check
       - run: cargo test --locked
       - run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Demo against the running API
+        run: START_SERVER=1 ./scripts/demo.sh

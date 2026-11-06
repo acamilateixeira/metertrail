@@ -7,7 +7,6 @@ use axum::{
     Json, Router,
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
-    response::IntoResponse,
     routing::{get, post},
 };
 use metertrail::{

@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "MeterTrail — local ingestion contract",
+    "name": "MeterTrail — local ingestion and projection",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -188,6 +188,141 @@
           {
             "key": "X-API-Key",
             "value": "unknown"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Crash between analytics write and checkpoint",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/projection/run",
+        "header": [
+          {
+            "key": "X-Admin-Key",
+            "value": "demo-admin"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fail\": \"after_analytics_write\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 500 injected crash', () => {",
+              "  pm.response.to.have.status(500);",
+              "  pm.expect(pm.response.json().error).to.eql('injected_crash');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restart the projection",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/projection/run",
+        "header": [
+          {
+            "key": "X-Admin-Key",
+            "value": "demo-admin"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projected usage equals the ledger",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/usage/projected",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "demo-alpha"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('nothing pending', () => pm.expect(pm.response.json().freshness.pending_events).to.eql(0));",
+              "pm.test('distinct count, not rows', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.physical_rows).to.be.at.least(body.count);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Replay from the start",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/projection/replay",
+        "header": [
+          {
+            "key": "X-Admin-Key",
+            "value": "demo-admin"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject a non-admin key",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/projection/run",
+        "header": [
+          {
+            "key": "X-Admin-Key",
+            "value": "demo-alpha"
           }
         ]
       },

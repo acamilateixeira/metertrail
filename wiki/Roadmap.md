@@ -8,13 +8,19 @@
 - Demo script against the running server, run in CI
 - Insomnia and Postman collections, quickstart, MIT license
 
-## Failure and recovery — next
+## Failure and recovery — done, in memory
 
-- A storage interface with the in-memory ledger and a Firestore implementation (transactions for check-and-insert)
-- A projection job that writes batches to ClickHouse and records its progress
-- An injected failure between the ClickHouse write and the progress record, and a test proving the total holds after replay
-- Usage by period, counting distinct ids
-- The same contract tests run against both storage implementations
+- `EventLedger`, `Analytics`, and `Checkpoint` traits, with in-memory implementations
+- A projection job that writes batches to analytics, then advances the checkpoint
+- An injected crash between those two writes, and tests proving the total holds after the restart and after a full replay
+- Usage by period, counting distinct ids, with freshness (pending events and the age of the oldest)
+- Admin endpoints to run and replay the projection, used by the demo script and both API collections
+
+## Durable storage — next
+
+- Firestore implementation of the ledger and the checkpoint (transactions for check-and-insert; a read cursor that tolerates late commits)
+- ClickHouse implementation of analytics (batch inserts, distinct counts by window)
+- The same tests run against the in-memory implementations and against the Firestore and ClickHouse emulators in CI
 
 ## Hosted demo — planned
 

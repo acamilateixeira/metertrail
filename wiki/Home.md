@@ -25,14 +25,15 @@
 | Milestone | Status |
 | --- | --- |
 | Ingestion contract | **Done.** Rust API, contract tests, and a scripted demo that runs in CI. |
-| Failure and recovery | Next. Durable ledger, ClickHouse projection, injected failure, and replay. |
+| Failure and recovery | **Done, in memory.** Batch projection with a checkpoint, an injected crash between the two writes, full replay, usage by period, and freshness. |
+| Durable storage | Next. Firestore and ClickHouse behind the same interfaces, tested against emulators in CI. |
 | Hosted demo | Planned. Cloud Run, OpenTelemetry, and Terraform. |
 
-The current version keeps events in memory and uses two fixed demo keys. It proves the ingestion contract; it is not meant for production. See [Roadmap](Roadmap).
+The current version keeps the ledger, analytics, and checkpoint in memory and uses fixed demo keys. It proves the ingestion contract and the recovery rules; it is not meant for production. See [Roadmap](Roadmap).
 
 ## At a glance
 
 - **Language:** Rust (Axum, Tokio, Serde)
-- **Endpoints:** `POST /v1/events`, `GET /v1/usage`, `GET /health`
+- **Endpoints:** `POST /v1/events`, `GET /v1/usage`, `GET /v1/usage/projected`, `POST /admin/projection/run`, `POST /admin/projection/replay`, `GET /health`
 - **Guarantee:** an `event_id` counts at most once per project; reusing it with different content returns `409`
 - **License:** [MIT](https://github.com/acamilateixeira/metertrail/blob/main/LICENSE)

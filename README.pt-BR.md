@@ -4,7 +4,7 @@
 
 [English](README.md) · **Português** · **Status · API Rust executável e arquitetura de nuvem proposta**
 
-[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml)
+[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml) · [Wiki](https://github.com/acamilateixeira/metertrail/wiki/Inicio): conceitos, referência da API, decisões e próximos marcos
 
 **Cada chamada de API conta uma vez, mesmo com reenvios e falhas de processamento.**
 

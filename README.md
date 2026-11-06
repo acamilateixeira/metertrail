@@ -4,7 +4,7 @@
 
 **English** · [Português](README.pt-BR.md) · **Status · runnable Rust API and cloud architecture plan**
 
-[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml)
+[![CI](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml/badge.svg)](https://github.com/acamilateixeira/metertrail/actions/workflows/ci.yml) · [Wiki](https://github.com/acamilateixeira/metertrail/wiki): concepts, API reference, design decisions, and roadmap
 
 **Count API usage once, even when clients retry and workers recover.**
 
